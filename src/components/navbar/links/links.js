@@ -14,9 +14,17 @@ const Links = () => {
             path:"/about",
 
         },
+        {
+            title:"Login",
+            path:"/login",
+
+        },
+        {
+            title:"Add Products",
+            path:"/addproduct",
+
+        },
     ];
-    const session = true
-    const isAdmin = true
 
     return (
     <div className={styles.links}>
@@ -24,19 +32,7 @@ const Links = () => {
         <NavLink item={link} key={link.title}/>
 
     ))} 
-    {session ? (
-            
-                <>
-                {isAdmin && (
-                <NavLink item={{title:"Admin", path: "/admin"}}/>)}
-                <button className={styles.logout}>Logout</button>
-                </>
-    
-    ): (
-            <NavLink item={{title: "Login", path: "/login"}}/>
 
-        )
-    }
     </div>
     )
   }
