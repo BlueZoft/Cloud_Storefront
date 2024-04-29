@@ -20,7 +20,7 @@ const productSchema = new mongoose.Schema(
   },
 );
 
-export const product = mongoose.model("products", productSchema);
+export const product = mongoose.model("product", productSchema);
 
 const adminSchema = new mongoose.Schema(
   {

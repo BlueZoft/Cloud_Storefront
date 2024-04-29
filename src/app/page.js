@@ -4,7 +4,6 @@ import { getProducts } from "@/lib/action";
 
 
 const Home = async () => {
-
   const products = await getProducts()
 
   return (

@@ -1,12 +1,25 @@
-"use server";
-import { admin, product } from "./models";
+"use server"
+
+import { product, admin } from "./models";
 import { connectToDb } from "./utils";
 import { v4 as uuidv4 } from 'uuid';
 
-export const addProduct = async (prevState,formData) => {
+export const getProducts = async () => {
+  connectToDb()
+  try {
+    const Products = await product.find();
+    return Products;
+  } catch (err) {
+    console.log(err);
+    throw new Error("Failed to fetch products!");
+  }
+};
+
+export const addProduct = async (formData) => {
+  connectToDb()
   const { title, desc, price, img } = Object.fromEntries(formData);
   try {
-    const newProduct = new product({
+    const newProduct = product({
       id: uuidv4(),title,desc,price,img,});
     await newProduct.save();
     console.log("saved to db");
@@ -17,6 +30,7 @@ export const addProduct = async (prevState,formData) => {
 };
 
 export const deleteProduct = async (id) => {
+  connectToDb()
   try {
     await product.findByIdAndDelete(id);
     console.log("deleted from db");
@@ -26,51 +40,13 @@ export const deleteProduct = async (id) => {
   }
 };
 
-export const updatePrdoduct = async (updatedProduct) => {
-  try {
-    const { id, title, desc, price, img } = updatedProduct;
-
-    const updatedProductData = await product.findByIdAndUpdate(
-      id,
-      {
-        title,
-        desc,
-        price,
-        img,
-      },
-      { new: true }
-    );
-
-    return updatedProductData;
-  } catch (err) {
-    console.error('Error updating product:', err);
-    throw err;
-  }
-};
-export const getProducts = async () => {
-  try {
-    const Products = await product.find();
-    return Products;
-  } catch (err) {
-    console.log(err);
-    throw new Error("Failed to fetch products!");
-  }
-};
-
 export const getAdmin = async () => {
+  connectToDb()
   try {
-    const Admin = await admin.find();
+    const Admin = await admin.findOne();
     return Admin;
   } catch (err) {
     console.log(err);
     throw new Error("Failed to fetch Admin!");
   }
 };
-
-
-export const handleLogout = async () => {
-  "use server";
-  await signOut();
-};
-
-
