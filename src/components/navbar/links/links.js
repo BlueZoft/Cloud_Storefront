@@ -18,12 +18,7 @@ const Links = () => {
             title:"Login",
             path:"/login",
 
-        },
-        {
-            title:"Add Products",
-            path:"/addproduct",
-
-        },
+        }
     ];
 
     return (
