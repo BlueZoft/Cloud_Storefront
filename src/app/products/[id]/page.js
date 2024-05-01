@@ -19,17 +19,18 @@ const SingleProductPage = async ({ params }) => {
         <form action={updateProduct} className={styles.form}>
           <input type="hidden" name="id" value={product.id} />
           <label>Name</label>
-          <input type="text" name="title" placeholder={product.title} />
+          <input type="text" name="title" defaultValue={product.title} minLength="3" maxLength="50" required />
           <label>Price</label>
-          <input type="number" name="price" placeholder={product.price} />
+          <input type="text" name="price" defaultValue={product.price} pattern="^\d+(\.\d{1,2})?$" required />
           <label>Image URL</label>
-          <input type="text" name="img" placeholder={product.img} />
+          <input type="url" name="img" defaultValue={product.img} pattern="https://.*" required />
           <label>Description</label>
           <textarea
-            name="desc"
+            name="desc"s
             id="desc"
             rows="10"
-            placeholder={product.desc}
+            maxLength="500"
+            defaultValue={product.desc}
           ></textarea>
           <button>Update</button>
         </form>
