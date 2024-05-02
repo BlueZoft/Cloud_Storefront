@@ -11,8 +11,9 @@ const productSchema = new mongoose.Schema(
       required: true,
     },
     price: {
-      type: String,
+      type: Number,
       required: true,
+      min: 0
     },
     img: {
       type: String,
@@ -20,7 +21,7 @@ const productSchema = new mongoose.Schema(
   },
 );
 
-export const product = mongoose.model("products", productSchema);
+export const product = mongoose.models?.product || mongoose.model("product", productSchema);
 
 const adminSchema = new mongoose.Schema(
   {
@@ -35,4 +36,4 @@ const adminSchema = new mongoose.Schema(
   },
 );
 
-export const admin = mongoose.model("admin", adminSchema);
+export const admin = mongoose.models?.admin || mongoose.model("admin", adminSchema);

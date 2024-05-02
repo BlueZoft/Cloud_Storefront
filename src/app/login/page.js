@@ -1,33 +1,19 @@
 "use client"
-import { getAdmin } from "@/lib/action"
+import { handleAdmin } from "@/lib/action"
 import styles from './page.module.css'
+import { useFormState } from "react-dom"
 
-const LogIn = () => {
-  connectToDb();
-  
-  const handleAdmin = async (event) => {
-    event.preventDefault();
-    
-    const enteredUsername = event.target.username.value;
-    const enteredPassword = event.target.password.value;
-    
-    const admin = await getAdmin();
-  
-    if (enteredUsername === admin.username && enteredPassword === admin.password) {
-      router.push('./addproduct');
-    } else {
-      router.push('/')
-    }
-  };
-  
+
+const LoginForm = () => {
+  const [state, formAction] = useFormState(handleAdmin, undefined);
+
   return (
-    <form className={styles.container} onSubmit={handleAdmin}>
-      <h1>Log-In</h1>
-      <input type="text" name="username" placeholder="Username" required />
-      <input type="password" name="password" placeholder="Password" required />
-      <button type="submit">Log-In</button>
+    <form className={styles.container} action={formAction}>
+      <input type="text" placeholder="username" name="username" />
+      <input type="password" placeholder="password" name="password" />
+      <button type="submit">Login</button>
     </form>
   );
-};
+}
 
-export default LogIn;
+export default LoginForm

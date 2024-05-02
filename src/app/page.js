@@ -1,10 +1,9 @@
 import styles from './page.module.css';
 import ProductCard from '@/components/productCard/productCard.js';
-import { getProducts } from "@/lib/action";
+import { getProducts } from "@/lib/data";
 
 
 const Home = async () => {
-
   const products = await getProducts()
 
   return (

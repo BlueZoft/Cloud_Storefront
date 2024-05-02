@@ -2,7 +2,12 @@
 const nextConfig = {
 
     images: {
-        domains: ['drive.google.com'],
+        remotePatterns:[
+          {
+            protocol:"https",
+            hostname:"images.pexels.com"
+          }
+        ]
       },
       
 };
