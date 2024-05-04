@@ -12,6 +12,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env: 
+      MONGO: ${{secrets.MONGO}}
 
     steps:
       - uses: actions/checkout@v4
@@ -42,6 +44,7 @@ jobs:
     environment:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+      
 
     steps:
       - name: Download artifact from build job
