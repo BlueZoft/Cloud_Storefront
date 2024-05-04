@@ -7,7 +7,7 @@ const AddProductPage = () => {
       <form action={addProduct} className={styles.form}>
         <input type="text" placeholder="title" name="title" minLength="3" maxLength="50" required />
         <input type="text" placeholder="price" name="price" pattern="^\d+(\.\d{1,2})?$" required />
-        <input type="text" placeholder="image" name="img" pattern="https://.*" required />
+        <input type="text" placeholder="image" name="img" pattern="https://images.pexels.com/.*" required />
         <textarea
           required
           name="desc"

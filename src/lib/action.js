@@ -12,7 +12,6 @@ export const addProduct = async (formData) => {
     connectToDb()
     const newProduct = new product({title,desc,price,img,});
     await newProduct.save();
-    console.log("saved to db");
   } catch (err) {
     console.log(err);
     return { error: "Product Not Saved!" };
@@ -30,7 +29,6 @@ export const updateProduct = async(formData) => {
       (key) => (updateFields[key] === "" || undefined) && delete updateFields[key]
     )
     await product.findByIdAndUpdate(id, updateFields)
-    console.log("saved to db");
   } catch (err) {
     console.log(err);
     return { error: "Product Not Saved!" };
@@ -44,7 +42,6 @@ export const deleteProduct = async (formData) => {
   try {
     connectToDb()
     await product.findByIdAndDelete(id);
-    console.log("deleted from db");
   } catch (err) {
     console.log(err);
     return { error: "Product Not Deleted!" };
