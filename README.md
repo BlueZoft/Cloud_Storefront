@@ -2,9 +2,16 @@
 
 Kilmaine Kakes is a Next.js App Router bakery catalogue backed by MongoDB/Mongoose. Visitors browse products and the About page. A single configured administrator signs in to add, edit, and delete products. This is a catalogue, not a checkout, payments, inventory, or customer account system.
 
+
+## Coursework completion status
+
+The implemented scope is complete: a public catalogue, single-admin login and product CRUD, server-side authorization and validation, shared login throttling, revocable sessions, pagination, database readiness, CI configuration, standalone/container delivery, and recovery tooling. Payments, checkout, customer accounts, and inventory tracking are outside this catalogue project.
+
+Start with [`.env.example`](.env.example), [the CI workflow](.github/workflows/nextjs.yml), [the Dockerfile](Dockerfile), and [Compose](compose.yaml). All supplied account/contact/configuration values are examples or placeholders. The completed coursework is maintained on `main`; the repository's historical `master` branch was not rewritten or made equivalent automatically. Select `main` explicitly in your deployment provider or change the default branch yourself if desired.
+
 ## Local development
 
-Use Node 22 (`.nvmrc`), Next.js 16, and React 19 and MongoDB 8. Start a local MongoDB instance, then:
+Use Node 22 (`.nvmrc`), Next.js 16, React 19, and MongoDB 8. Start a local MongoDB instance, then:
 
 ```sh
 npm ci
@@ -63,7 +70,7 @@ This is an educational baseline. Keep network-level bot controls, audit logging 
 
 ## Builds behind an inspecting proxy
 
-If a managed environment uses a private certificate authority, preserve certificate verification. Both Dockerfiles accept an optional BuildKit secret containing your approved CA bundle:
+If a managed environment uses a private certificate authority, preserve certificate verification. The Dockerfile accepts an optional BuildKit secret containing your approved CA bundle:
 
 ```sh
 docker build --secret id=build_ca,src=/path/to/approved-ca-bundle.pem -t coursework-app .
@@ -130,3 +137,21 @@ TEST_MONGO=mongodb://127.0.0.1:27017/storefront_backup_test npm run test:backup
 The source must be empty and named `storefront_backup_test…`. The drill inserts BSON fixtures and an index, checks exact recovery and authentication exclusion, tests corrupt/source/nonempty-target refusal, and deletes its own generated test data. CI runs this drill using Database Tools from its MongoDB service image. A failed restore may leave a partial target: inspect and recreate it before retrying; never cut over automatically.
 
 Artifacts are private, never overwritten, and ignored by Git/Docker. Checksums detect corruption; they do not authenticate an untrusted archive. Encrypt backups, restrict local OS access, keep encryption keys separate, and store copies off-host. No external destination or automatic schedule has been configured. As an exercise, agree an RPO/RTO, schedule unique daily archives with an explicit retention policy, and record monthly restore/smoke-test timings before trusting the recovery plan.
+
+## Final validation and deployment handover
+
+The following checks passed locally on 15 November 2026:
+
+| Check | Evidence and coverage |
+| --- | --- |
+| `npm test -- --runInBand` | 13 unit tests covering rendering, password/session integrity, validation, authorization, throttled actions, database retry behavior, and readiness |
+| `npm run test:integration` with a dedicated MongoDB | 4 tests covering atomic concurrent throttling, revocation, expiry, and admin credential changes |
+| `npm run test:backup` with a dedicated empty test database | Non-empty BSON recovery, index preservation, authentication exclusion, and refusal of corrupt/unsafe restores |
+| `npm run lint` / `npm run build` | ESLint and the standalone production build passed |
+| Production-server HTTP requests | Login and secure cookie issuance, copied-cookie rejection after logout, logout-all, and shared throttling worked against MongoDB; earlier catalogue checks exercised product CRUD and pagination |
+
+These are local validation results. The workflow is configured to repeat tests, recovery checks, lint, build, and container build on GitHub; this record does not assert that remote CI or a deployed service has passed. The HTTP checks exercised server behavior with explicit test cookies; they do not replace browser testing through a real HTTPS ingress.
+
+Before a public release, configure actual runtime secrets, HTTPS, authenticated/TLS MongoDB, network restrictions, and consistent secrets/clocks across replicas. Verify `/api/health` and perform login, product CRUD, logout/replay, and recovery smoke tests in staging. Old cookie-only sessions must sign in again. Confirm database privileges permit initialization of the authentication collections and TTL indexes.
+
+Off-host backup destinations, encryption keys, schedules/retention, alerts, and provider deployment jobs remain explicit operator settings. No external storage, scheduler, or cloud deployment has been provisioned. Multi-admin identity management, distributed bot controls, audit logging, and managed point-in-time recovery are further exercises rather than unfinished catalogue functionality.
