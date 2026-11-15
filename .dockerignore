@@ -3,3 +3,9 @@
 node_modules
 .next
 coverage
+
+backups/
+*.sql.gz
+*.archive.gz
+*.sha256
+*.manifest.json

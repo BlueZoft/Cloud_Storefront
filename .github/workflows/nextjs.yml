@@ -5,6 +5,13 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image: mongo:8.0
+        ports: ["27017:27017"]
+        options: >-
+          --health-cmd="mongosh --quiet --eval 'db.adminCommand({ping:1}).ok'"
+          --health-interval=5s --health-timeout=3s --health-retries=30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -13,6 +20,19 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test -- --runInBand
+      - run: npm run test:integration
+        env:
+          TEST_MONGO: mongodb://127.0.0.1:27017/storefront_auth_test
+      - name: Use database tools from the MongoDB service image
+        run: |
+          mkdir -p /tmp/store-db-tools
+          docker cp ${{ job.services.mongodb.id }}:/usr/bin/mongodump /tmp/store-db-tools/mongodump
+          docker cp ${{ job.services.mongodb.id }}:/usr/bin/mongorestore /tmp/store-db-tools/mongorestore
+      - run: npm run test:backup
+        env:
+          TEST_MONGO: mongodb://127.0.0.1:27017/storefront_backup_test
+          MONGODUMP_BIN: /tmp/store-db-tools/mongodump
+          MONGORESTORE_BIN: /tmp/store-db-tools/mongorestore
       - run: npm run lint
       - run: npm run build
       - run: docker build -t storefront:ci .

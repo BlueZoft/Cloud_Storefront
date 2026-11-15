@@ -9,7 +9,9 @@
     "lint": "eslint .",
     "test": "jest",
     "test:watch": "jest --watch",
-    "postbuild": "node scripts/prepare-standalone.cjs"
+    "postbuild": "node scripts/prepare-standalone.cjs",
+    "test:integration": "jest --runInBand --testMatch '**/integration/*.integration.js'",
+    "test:backup": "node integration/backup.cjs"
   },
   "dependencies": {
     "mongoose": "^8.24.9",

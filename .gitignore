@@ -37,3 +37,9 @@ next-env.d.ts
 
 .env*
 !.env.example
+
+backups/
+*.sql.gz
+*.archive.gz
+*.sha256
+*.manifest.json

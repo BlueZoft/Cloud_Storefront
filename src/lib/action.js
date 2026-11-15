@@ -6,7 +6,8 @@ import { revalidatePath } from "next/cache";
 import { product } from "./models";
 import { connectToDb } from "./utils";
 import { requireAdmin } from "./auth";
-import { createSession, verifyPassword } from "./session";
+import { verifyPassword } from "./session";
+import { consumeLoginAttempt, issueSession, revokeSession, revokeAllSessions } from "./auth-state";
 import { productInput } from "./validation";
 
 function idFrom(formData) {
@@ -45,15 +46,27 @@ export async function deleteProduct(previous, formData) {
 export async function handleAdmin(previous, formData) {
   const username = String(formData.get("username") || "");
   const password = String(formData.get("password") || "");
+  if (!await consumeLoginAttempt()) return { error: "Too many login attempts. Please wait one minute." };
   // Verify the hash even for unknown usernames to reduce timing differences.
   const correct = await verifyPassword(password, process.env.ADMIN_PASSWORD_HASH);
   if (!correct || !process.env.ADMIN_USERNAME || username !== process.env.ADMIN_USERNAME) return { error: "Invalid username or password." };
-  (await cookies()).set("storefront_session", createSession(), {
+  const jar = await cookies();
+  await revokeSession(jar.get("storefront_session")?.value);
+  const token = await issueSession();
+  jar.set("storefront_session", token, {
     httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 3600, path: "/",
   });
   redirect("/products");
 }
 export async function logout() {
+  const jar = await cookies();
+  await revokeSession(jar.get("storefront_session")?.value);
+  jar.delete("storefront_session");
+  redirect("/login");
+}
+export async function logoutAll() {
+  await requireAdmin();
+  await revokeAllSessions();
   (await cookies()).delete("storefront_session");
   redirect("/login");
 }

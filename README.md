@@ -26,7 +26,7 @@ Visit `/` for the public catalogue, `/login` to sign in, and `/products` for man
 
 Server components query MongoDB directly. Public catalogue rendering is dynamic, so builds need neither a database connection nor production secrets. The connection helper caches an in-flight promise across concurrent requests and retries after failed connections. Mutations revalidate the catalogue and administration pages so edits appear immediately.
 
-Admin cookies are HttpOnly, SameSite=Lax, signed with HMAC-SHA256, and expire after an hour. Password verification uses scrypt and a constant-time hash comparison. The product layout checks authentication, and every server action independently enforces it; hiding a link is not access control. Next server actions provide POST and origin checks; preserve the correct public Host/Origin through your reverse proxy. Production cookies require HTTPS. Logout clears the browser cookie, but a copied cookie remains valid until expiry or signing-key rotation.
+Admin cookies are HttpOnly, SameSite=Lax, signed with HMAC-SHA256, and expire after an hour. Password verification uses scrypt and a constant-time hash comparison. The product layout checks authentication, and every server action independently enforces it; hiding a link is not access control. Next server actions provide POST and origin checks; preserve the correct public Host/Origin through your reverse proxy. Production cookies require HTTPS. Every protected request also checks the server-side session record. Logout deletes it, invalidating copied cookies immediately.
 
 ## Build, containers, and deployment
 
@@ -59,7 +59,7 @@ GitHub Pages cannot execute this application's server actions or query its datab
 
 Jest covers rendering, password hashing, session tampering/expiry, product input validation, and action authorization. These unit tests complement, rather than replace, real database and browser checks. Exercise login, create/edit/delete, stale product IDs, direct unauthenticated mutations, MongoDB outage recovery, and `/api/health` in staging.
 
-This is an educational baseline. Add shared rate limiting before exposing login publicly (process-local limits do not work across replicas), stronger session revocation for account recovery, audit logging without secrets, automated dependency updates, and backup/restore procedures. There is one administrator and no self-service registration. Do not migrate the old plaintext admin records into configuration without changing the password.
+This is an educational baseline. Keep network-level bot controls, audit logging without secrets, automated dependency updates, and off-host encrypted backups in your deployment plan. Shared login throttling, session revocation, and recovery drills are implemented below. There is one administrator and no self-service registration. Do not migrate the old plaintext admin records into configuration without changing the password.
 
 ## Builds behind an inspecting proxy
 
@@ -75,7 +75,7 @@ The bundle is mounted only during dependency installation and is not copied into
 
 ## Review outcomes
 
-Replaced plaintext database admin lookup with configured password hashing and signed sessions; protected every mutation; awaited and reused database connections; added validation, missing-record handling, visible form errors, and cache refresh. Replaced incompatible static Pages deployment with a server/container workflow, removed remote font build access, upgraded framework dependencies, and added a reproducible standalone startup. Multi-admin identity management, distributed login throttling, and database migrations remain separate extensions.
+Replaced plaintext database admin lookup with configured password hashing and signed sessions; protected every mutation; awaited and reused database connections; added validation, missing-record handling, visible form errors, and cache refresh. Replaced incompatible static Pages deployment with a server/container workflow, removed remote font build access, upgraded framework dependencies, and added a reproducible standalone startup. Multi-admin identity management and versioned business-data migrations remain separate extensions.
 
 ## Robustness and operations
 
@@ -83,4 +83,50 @@ The catalogue and management table now use 20-row pages (`?page=2`) with stable 
 
 MongoDB pools are limited to 10 connections per process, with five-second connection/selection/pool-wait limits and a ten-second socket timeout. Listing/detail reads have a five-second server query limit. The readiness endpoint sends a real MongoDB ping with an operation timeout, returns 503 during an outage, and disables caching. Connection failures can retry on later requests without caching a rejected connection promise.
 
-Login password derivation now runs asynchronously through Node's crypto worker pool, so it does not synchronously block unrelated requests. This does not prevent brute force or worker-pool exhaustion. Before public deployment, prioritize a shared rate limit at the reverse proxy or identity provider, backup/restore testing, alerting on readiness failures, and session revocation. Scale the connection pool budget with the total replica count, not just one instance.
+Login password derivation now runs asynchronously through Node's crypto worker pool, so it does not synchronously block unrelated requests. This does not prevent brute force or worker-pool exhaustion. Before public deployment, complement the database-backed controls below with network rate limits, bot detection, off-host backup storage, and alerting on readiness failures. Scale the connection pool budget with the total replica count, not just one instance.
+
+## Shared login limits and revocable sessions
+
+MongoDB now stores authentication metadata alongside the business collections. TTL indexes on `login_limits` and `auth_sessions` are initialized on first use; the application database account must be able to create those collections and indexes. No additional service or secret is required. Old self-contained cookies without a matching record no longer grant access.
+
+The single administrator login has a **shared limit of 10 attempts per minute**, enforced by an atomic MongoDB update before password derivation. Successful attempts count too. The limit applies across replicas and across submitted usernames, so changing a username or spoofing a forwarded IP header does not create another bucket. All replicas need synchronized clocks. Expired counters are cleaned by a TTL index, but authorization and quota enforcement do not depend on timely TTL deletion. Fixed-window limits permit boundary bursts; an attacker can also temporarily occupy this shared quota. Protect the endpoint at the ingress against distributed traffic; this educational application intentionally does not trust arbitrary forwarded headers.
+
+Session tokens include random IDs and a one-hour expiry and must match a database record containing only the token's hash. Protected layouts **and every mutation** check that record. Logout revokes one session; **Sign out all devices** revokes every admin session. Changing `ADMIN_USERNAME` or `ADMIN_PASSWORD_HASH` invalidates existing sessions once every replica uses the new configuration. The database never stores the raw cookie. For recovery without a working browser session:
+
+```sh
+# Load MONGO securely into the shell; plain Node scripts do not read .env.local automatically.
+node scripts/revoke-sessions.cjs --all
+```
+
+Database failure denies authentication rather than falling back to cookie-only authorization. Concurrent login and logout-all requests have normal database ordering: a new login committed after revocation may remain active. Rotate credentials as well when responding to compromise.
+
+Run the database-backed tests separately from the unit suite:
+
+```sh
+TEST_MONGO=mongodb://127.0.0.1:27017/storefront_auth_test npm run test:integration
+```
+
+The test database name must start `storefront_auth_test`; tests clear authentication collections in that dedicated database. Tests verify simultaneous quota consumption, copied-token revocation, credential changes, and expiry before TTL cleanup. Do not point tests at a real application database.
+
+## Backup, restore, and recovery drills
+
+Install the official MongoDB Database Tools (`mongodump`/`mongorestore`) compatible with your server and run the helpers from the repository root. Plain Node scripts require `MONGO` exported in the process environment, with an explicit database name (simple letters/digits/underscore/hyphen). Use dedicated backup/restore credentials through your secret store. Optional `MONGODUMP_BIN` and `MONGORESTORE_BIN` select tool paths. A temporary mode-600 tool config avoids putting credential-bearing URIs in command arguments and is removed on exit.
+
+```sh
+mkdir -m 700 backups
+node scripts/database.cjs backup backups/store.archive.gz
+node scripts/database.cjs restore backups/store.archive.gz restore_store
+node scripts/database.cjs verify restore_store
+```
+
+Keep the archive, `.sha256`, and `.manifest.json` together. Restore verifies their agreement, refuses the source or a non-empty target, remaps source namespaces only to a separate `restore_…` database, and checks restored collection names. MongoDB creates the empty target on restore. `auth_sessions` and `login_limits` are excluded so recovered data cannot resurrect revoked authentication state. Verify compares BSON documents and indexes against the paused source, including ObjectIds, dates, and nested values. Writes must be paused during a dump/verification drill: a live standalone logical dump is not a multi-collection point-in-time snapshot. On larger deployments use your provider's consistent backups/oplog recovery.
+
+Run the non-empty, disposable drill with tool access and a test database account:
+
+```sh
+TEST_MONGO=mongodb://127.0.0.1:27017/storefront_backup_test npm run test:backup
+```
+
+The source must be empty and named `storefront_backup_test…`. The drill inserts BSON fixtures and an index, checks exact recovery and authentication exclusion, tests corrupt/source/nonempty-target refusal, and deletes its own generated test data. CI runs this drill using Database Tools from its MongoDB service image. A failed restore may leave a partial target: inspect and recreate it before retrying; never cut over automatically.
+
+Artifacts are private, never overwritten, and ignored by Git/Docker. Checksums detect corruption; they do not authenticate an untrusted archive. Encrypt backups, restrict local OS access, keep encryption keys separate, and store copies off-host. No external destination or automatic schedule has been configured. As an exercise, agree an RPO/RTO, schedule unique daily archives with an explicit retention policy, and record monthly restore/smoke-test timings before trusting the recovery plan.

@@ -19,7 +19,7 @@ export async function verifyPassword(password, hash) {
   return timingSafeEqual(Buffer.from(expected, "hex"), await deriveKey(password, salt, 64));
 }
 export function createSession() {
-  const payload = Buffer.from(JSON.stringify({ role: "admin", exp: Date.now() + 3600000 })).toString("base64url");
+  const payload = Buffer.from(JSON.stringify({ role: "admin", sid: randomBytes(32).toString("hex"), exp: Date.now() + 3600000 })).toString("base64url");
   return `${payload}.${createHmac("sha256", secret()).update(payload).digest("hex")}`;
 }
 export function validSession(token) {

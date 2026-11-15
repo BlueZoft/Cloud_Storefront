@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { validSession } from "./session";
+import { activeSession } from "./auth-state";
 
 export async function requireAdmin() {
   const jar = await cookies();
-  if (!validSession(jar.get("storefront_session")?.value)) redirect("/login");
+  if (!await activeSession(jar.get("storefront_session")?.value)) redirect("/login");
 }
