@@ -1,16 +1,17 @@
-import mongoose from "mongoose"
+import mongoose from "mongoose";
 
-const connection = {};
-
-export const connectToDb = async () => {
+// Share an in-flight connection across requests and development hot reloads.
+const cache = globalThis.storefrontMongo ||= { connection: null, promise: null };
+export async function connectToDb() {
+  if (!process.env.MONGO) throw new Error("MONGO must be configured");
+  if (cache.connection?.connection.readyState === 1) return cache.connection;
+  if (!cache.promise) cache.promise = mongoose.connect(process.env.MONGO, { serverSelectionTimeoutMS: 5000 });
   try {
-    if(connection.isConnected) {
-      return;
-    }
-    const db = await mongoose.connect(process.env.MONGO);
-    connection.isConnected = db.connections[0].readyState;
-  } catch (error) {
-    console.log(error);
-    throw new Error(error);
+    cache.connection = await cache.promise;
+    return cache.connection;
+  } catch {
+    throw new Error("Database unavailable");
+  } finally {
+    cache.promise = null;
   }
-};
+}

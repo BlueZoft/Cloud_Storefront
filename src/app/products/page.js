@@ -1,3 +1,4 @@
+import ActionForm from "@/components/ActionForm";
 import Image from "next/image";
 import Link from "next/link";
 import styles from "./products.module.css"
@@ -9,7 +10,7 @@ const ProductsPage = async () => {
   return (
     <div className={styles.container}>
       <div className={styles.top}>
-        <Link href="products/add">
+        <Link href="/products/add">
           <button className={styles.addButton}>Add New</button>
         </Link>
       </div>
@@ -45,12 +46,10 @@ const ProductsPage = async () => {
                       Edit
                     </button>
                   </Link>
-                  <form action={deleteProduct}>
+                  <ActionForm action={deleteProduct} submitLabel="Delete">
                     <input type="hidden" name="id" value={product.id} />
-                    <button className={`${styles.button} ${styles.delete}`}>
-                      Delete
-                    </button>
-                  </form>
+
+                  </ActionForm>
                 </div>
               </td>
             </tr>

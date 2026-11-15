@@ -1,10 +1,11 @@
+import ActionForm from "@/components/ActionForm";
 import { updateProduct } from "@/lib/action"
 import { fetchProduct } from "@/lib/data"
 import styles from "./singleProduct.module.css"
 import Image from "next/image";
 
 const SingleProductPage = async ({ params }) => {
-  const { id } = params
+  const { id } = await params
   const product = await fetchProduct(id);
 
   return (
@@ -16,7 +17,7 @@ const SingleProductPage = async ({ params }) => {
         {product.title}
       </div>
       <div className={styles.formContainer}>
-        <form action={updateProduct} className={styles.form}>
+        <ActionForm action={updateProduct} submitLabel="Save changes" className={styles.form}>
         <input type="hidden" name="id" value={product.id} />
 <label>Name</label>
 <input type="text" name="title" defaultValue={product.title} minLength="3" maxLength="50" pattern="[a-zA-Z0-9 ]+" required />
@@ -26,8 +27,8 @@ const SingleProductPage = async ({ params }) => {
 <input type="text" placeholder="image" name="img"  defaultValue={product.img} pattern="https://images.pexels.com/.*" required />
 <label>Description</label>
 <textarea name="desc" id="desc" rows="10" maxLength="500" defaultValue={product.desc} pattern="[a-zA-Z0-9 ]+"></textarea>
-          <button>Update</button>
-        </form>
+
+        </ActionForm>
       </div>
     </div>
   );

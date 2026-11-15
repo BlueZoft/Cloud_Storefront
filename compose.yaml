@@ -1,0 +1,22 @@
+services:
+  web:
+    build: .
+    ports: ["127.0.0.1:3000:3000"]
+    environment:
+      MONGO: mongodb://db:27017/storefront
+      ADMIN_USERNAME: ${ADMIN_USERNAME:?Set ADMIN_USERNAME}
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:?Set ADMIN_PASSWORD_HASH}
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET}
+    depends_on:
+      db:
+        condition: service_healthy
+  db:
+    image: mongo:8.0
+    volumes: ["store-data:/data/db"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand({ping:1}).ok"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+volumes:
+  store-data:

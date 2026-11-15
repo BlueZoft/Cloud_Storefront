@@ -1,19 +1,9 @@
-"use client"
-import { handleAdmin } from "@/lib/action"
-import styles from './page.module.css'
-import { useFormState } from "react-dom"
-
-
-const LoginForm = () => {
-  const [state, formAction] = useFormState(handleAdmin, undefined);
-
-  return (
-    <form className={styles.container} action={formAction}>
-      <input type="text" placeholder="username" name="username"  minLength="3" maxLength="10" pattern="[a-zA-Z0-9]+" />
-      <input type="password" placeholder="password" name="password"  minLength="3" maxLength="10" pattern="[a-zA-Z0-9]+" />
-      <button type="submit">Login</button>
-    </form>
-  );
+import { handleAdmin } from "@/lib/action";
+import ActionForm from "@/components/ActionForm";
+import styles from "./page.module.css";
+export default function LoginPage() {
+  return <ActionForm action={handleAdmin} submitLabel="Sign in" className={styles.container}>
+    <label>Username<input name="username" autoComplete="username" required maxLength={100} /></label>
+    <label>Password<input type="password" name="password" autoComplete="current-password" required maxLength={256} /></label>
+  </ActionForm>;
 }
-
-export default LoginForm

@@ -1,62 +1,59 @@
-"use server"
-import { product } from "./models";
-import { getAdmin } from "./data";
-import { connectToDb } from "./utils";
-import {redirect} from "next/navigation"
+"use server";
+import mongoose from "mongoose";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { product } from "./models";
+import { connectToDb } from "./utils";
+import { requireAdmin } from "./auth";
+import { createSession, verifyPassword } from "./session";
+import { productInput } from "./validation";
 
-
-export const addProduct = async (formData) => {
-  const { title, desc, price, img } = Object.fromEntries(formData);
-  try {
-    connectToDb()
-    const newProduct = new product({title,desc,price,img,});
-    await newProduct.save();
-  } catch (err) {
-    console.log(err);
-    return { error: "Product Not Saved!" };
-  }
-  revalidatePath("/products")
-  redirect("/products")
-};
-
-export const updateProduct = async(formData) => {
-  const { id, title, desc, price, img } = Object.fromEntries(formData)
-  try {
-    connectToDb()
-    const updateFields = {id,title,desc,price,img,}
-    Object.keys(updateFields).forEach(
-      (key) => (updateFields[key] === "" || undefined) && delete updateFields[key]
-    )
-    await product.findByIdAndUpdate(id, updateFields)
-  } catch (err) {
-    console.log(err);
-    return { error: "Product Not Saved!" };
-  }
-  revalidatePath("/products")
-  redirect("/products")
+function idFrom(formData) {
+  const id = String(formData.get("id") || "");
+  if (!mongoose.isValidObjectId(id)) throw new Error("Invalid product ID");
+  return id;
 }
-
-export const deleteProduct = async (formData) => {
-  const {id} = Object.fromEntries(formData)
+function refresh() { revalidatePath("/"); revalidatePath("/products"); }
+export async function addProduct(previous, formData) {
+  await requireAdmin();
+  let values;
+  try { values = productInput(formData); } catch (error) { return { error: error.message }; }
+  try { await connectToDb(); await product.create(values); }
+  catch { return { error: "Unable to save product. Please retry." }; }
+  refresh(); redirect("/products");
+}
+export async function updateProduct(previous, formData) {
+  await requireAdmin();
+  let values, id;
+  try { values = productInput(formData); id = idFrom(formData); } catch (error) { return { error: error.message }; }
   try {
-    connectToDb()
-    await product.findByIdAndDelete(id);
-  } catch (err) {
-    console.log(err);
-    return { error: "Product Not Deleted!" };
-  }
-  revalidatePath("/products")
-};
-
-export const handleAdmin = async (prevState, formData) => {
-  const { username } = Object.fromEntries(formData)
-  const { password } = Object.fromEntries(formData);
-  
-  const admin = await getAdmin();
-  if (username == admin.username && password == admin.password) {
-    redirect("/products");
-  } else {
-    redirect("/");
-  }
-};
+    await connectToDb();
+    if (!await product.findByIdAndUpdate(id, values, { runValidators: true })) return { error: "Product no longer exists." };
+  } catch { return { error: "Unable to save product. Please retry." }; }
+  refresh(); redirect("/products");
+}
+export async function deleteProduct(previous, formData) {
+  await requireAdmin();
+  try {
+    const id = idFrom(formData);
+    await connectToDb();
+    if (!await product.findByIdAndDelete(id)) return { error: "Product no longer exists." };
+  } catch { return { error: "Unable to delete product. Please retry." }; }
+  refresh(); return { success: "Product deleted." };
+}
+export async function handleAdmin(previous, formData) {
+  const username = String(formData.get("username") || "");
+  const password = String(formData.get("password") || "");
+  // Verify the hash even for unknown usernames to reduce timing differences.
+  const correct = verifyPassword(password, process.env.ADMIN_PASSWORD_HASH);
+  if (!correct || !process.env.ADMIN_USERNAME || username !== process.env.ADMIN_USERNAME) return { error: "Invalid username or password." };
+  (await cookies()).set("storefront_session", createSession(), {
+    httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 3600, path: "/",
+  });
+  redirect("/products");
+}
+export async function logout() {
+  (await cookies()).delete("storefront_session");
+  redirect("/login");
+}

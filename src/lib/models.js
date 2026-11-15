@@ -4,11 +4,11 @@ const productSchema = new mongoose.Schema(
   {
     title: {
       type: String,
-      required: true,
+      required: true, minlength: 3, maxlength: 50,
     },
     desc: {
       type: String,
-      required: true,
+      required: true, maxlength: 500,
     },
     price: {
       type: Number,
@@ -22,18 +22,3 @@ const productSchema = new mongoose.Schema(
 );
 
 export const product = mongoose.models?.product || mongoose.model("product", productSchema);
-
-const adminSchema = new mongoose.Schema(
-  {
-    username: {
-      type: String,
-      required: true,
-    },
-    password: {
-      type: String,
-      required: true,
-    },
-  },
-);
-
-export const admin = mongoose.models?.admin || mongoose.model("admin", adminSchema);

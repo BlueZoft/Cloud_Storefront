@@ -21,9 +21,9 @@ const AboutPage = () => {
 However, amidst their whirlwind of inventiveness, Kilmaine Kakes remains grounded in the time-honored recipes that have made them a beloved institution.
 </p>
 <p className={styles.desc}>
-Come meet us! - Castle Park Rd, Bangor BT20 4TD
+Demo business address: replace with your address
 <br></br>
-Talk to us! - 0345 600 7555
+Demo contact number: replace with your number
         </p>
         <div className={styles.boxes}>
           <div className={styles.box}>
