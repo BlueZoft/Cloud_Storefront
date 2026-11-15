@@ -1,3 +1,5 @@
+import { pageNumber } from "@/lib/pagination";
+import Pagination from "@/components/Pagination";
 import ActionForm from "@/components/ActionForm";
 import Image from "next/image";
 import Link from "next/link";
@@ -5,8 +7,9 @@ import styles from "./products.module.css"
 import { getProducts } from "@/lib/data"
 import { deleteProduct } from "@/lib/action"
 
-const ProductsPage = async () => {
-  const products = await getProducts();
+const ProductsPage = async ({ searchParams }) => {
+  const page = pageNumber((await searchParams).page);
+  const { products, hasNext } = await getProducts(page);
   return (
     <div className={styles.container}>
       <div className={styles.top}>
@@ -56,6 +59,7 @@ const ProductsPage = async () => {
           ))}
         </tbody>
       </table>
+    <Pagination page={page} hasNext={hasNext} path="/products" />
     </div>
   );
 };

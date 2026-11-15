@@ -1,4 +1,5 @@
-import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { promisify } from "node:util";
+import { createHmac, randomBytes, scryptSync, scrypt, timingSafeEqual } from "node:crypto";
 
 function secret() {
   const value = process.env.SESSION_SECRET;
@@ -9,11 +10,13 @@ export function hashPassword(password) {
   const salt = randomBytes(16).toString("hex");
   return `${salt}:${scryptSync(password, salt, 64).toString("hex")}`;
 }
-export function verifyPassword(password, hash) {
+const deriveKey = promisify(scrypt);
+
+export async function verifyPassword(password, hash) {
   if (typeof password !== "string" || password.length > 256) return false;
   if (!/^[a-f0-9]{32}:[a-f0-9]{128}$/.test(hash || "")) return false;
   const [salt, expected] = hash.split(":");
-  return timingSafeEqual(Buffer.from(expected, "hex"), scryptSync(password, salt, 64));
+  return timingSafeEqual(Buffer.from(expected, "hex"), await deriveKey(password, salt, 64));
 }
 export function createSession() {
   const payload = Buffer.from(JSON.stringify({ role: "admin", exp: Date.now() + 3600000 })).toString("base64url");

@@ -76,3 +76,11 @@ The bundle is mounted only during dependency installation and is not copied into
 ## Review outcomes
 
 Replaced plaintext database admin lookup with configured password hashing and signed sessions; protected every mutation; awaited and reused database connections; added validation, missing-record handling, visible form errors, and cache refresh. Replaced incompatible static Pages deployment with a server/container workflow, removed remote font build access, upgraded framework dependencies, and added a reproducible standalone startup. Multi-admin identity management, distributed login throttling, and database migrations remain separate extensions.
+
+## Robustness and operations
+
+The catalogue and management table now use 20-row pages (`?page=2`) with stable `_id` ordering and Previous/Next links. Malformed or excessive page numbers normalize to page 1. The database retrieves at most 21 records per request; the extra row determines whether Next is available. Offset pagination is adequate for coursework; use cursor pagination for a large catalogue.
+
+MongoDB pools are limited to 10 connections per process, with five-second connection/selection/pool-wait limits and a ten-second socket timeout. Listing/detail reads have a five-second server query limit. The readiness endpoint sends a real MongoDB ping with an operation timeout, returns 503 during an outage, and disables caching. Connection failures can retry on later requests without caching a rejected connection promise.
+
+Login password derivation now runs asynchronously through Node's crypto worker pool, so it does not synchronously block unrelated requests. This does not prevent brute force or worker-pool exhaustion. Before public deployment, prioritize a shared rate limit at the reverse proxy or identity provider, backup/restore testing, alerting on readiness failures, and session revocation. Scale the connection pool budget with the total replica count, not just one instance.

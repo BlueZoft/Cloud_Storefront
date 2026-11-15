@@ -5,7 +5,7 @@ const cache = globalThis.storefrontMongo ||= { connection: null, promise: null }
 export async function connectToDb() {
   if (!process.env.MONGO) throw new Error("MONGO must be configured");
   if (cache.connection?.connection.readyState === 1) return cache.connection;
-  if (!cache.promise) cache.promise = mongoose.connect(process.env.MONGO, { serverSelectionTimeoutMS: 5000 });
+  if (!cache.promise) cache.promise = mongoose.connect(process.env.MONGO, { serverSelectionTimeoutMS: 5000, connectTimeoutMS: 5000, socketTimeoutMS: 10000, maxPoolSize: 10, waitQueueTimeoutMS: 5000 });
   try {
     cache.connection = await cache.promise;
     return cache.connection;

@@ -46,7 +46,7 @@ export async function handleAdmin(previous, formData) {
   const username = String(formData.get("username") || "");
   const password = String(formData.get("password") || "");
   // Verify the hash even for unknown usernames to reduce timing differences.
-  const correct = verifyPassword(password, process.env.ADMIN_PASSWORD_HASH);
+  const correct = await verifyPassword(password, process.env.ADMIN_PASSWORD_HASH);
   if (!correct || !process.env.ADMIN_USERNAME || username !== process.env.ADMIN_USERNAME) return { error: "Invalid username or password." };
   (await cookies()).set("storefront_session", createSession(), {
     httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 3600, path: "/",

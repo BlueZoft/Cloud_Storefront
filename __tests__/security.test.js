@@ -3,11 +3,11 @@ import { hashPassword, verifyPassword, createSession, validSession } from "../sr
 import { productInput } from "../src/lib/validation";
 
 beforeEach(() => { process.env.SESSION_SECRET = "a".repeat(64); });
-test("passwords are salted and verified without plaintext storage", () => {
+test("passwords are salted and verified without plaintext storage", async () => {
   const hash = hashPassword("a long password");
-  expect(verifyPassword("a long password", hash)).toBe(true);
-  expect(verifyPassword("wrong", hash)).toBe(false);
-  expect(verifyPassword("wrong", "plaintext")).toBe(false);
+  expect(await verifyPassword("a long password", hash)).toBe(true);
+  expect(await verifyPassword("wrong", hash)).toBe(false);
+  expect(await verifyPassword("wrong", "plaintext")).toBe(false);
   expect(hashPassword("a long password")).not.toBe(hash);
 });
 test("sessions reject tampering, expiration and a different signing key", () => {
